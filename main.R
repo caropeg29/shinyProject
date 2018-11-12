@@ -5,10 +5,7 @@ library(UsingR)
 library(ggplot2)
 
 ui <- fluidPage(
-  fluidRow(
-    textOutput("test")
-  ),
-  
+ 
   fluidRow(
    # column(4,
     #  imageOutput("logoDescartes")
@@ -65,6 +62,14 @@ ui <- fluidPage(
                         ),
                
                tabPanel("Age",
+                        fluidRow(
+                          column(6,
+                                 tableOutput("tableMoyenne")
+                          ),
+                          column(6,
+                                 textOutput("textMoyenne")
+                          )
+                        ),
                         fluidRow(DT::dataTableOutput(outputId = "tableEffectifsAge")),
                         fluidRow(
                           #column(6,textOutput("texteeffectifDiagAge")),
@@ -106,24 +111,23 @@ ui <- fluidPage(
                         fluidRow(
                           textOutput("texteAnalyseTempsPage")
                         )
-                        )
+                        ),
+               tabPanel("Performances",
+                        fluidRow(plotOutput("diagPerf")),
+                        fluidRow(column(4,
+                                        plotOutput("diagPerfDesktop")),
+                                 column(4,
+                                        plotOutput("diagPerfMobile")),
+                                 column(4,
+                                        plotOutput("diagPerfTablette")))
+               )
+               )
                
              ),
             
              
-             fluidRow(
-               column(6,
-                      tableOutput("tableMoyenne")
-                      ),
-               column(6,
-                      textOutput("textMoyenne")
-                      )
-             )
              
              
-             
-             
-             ),
     tabPanel("Analyses Bivariées", 
              
              fluidRow(
@@ -134,11 +138,11 @@ ui <- fluidPage(
                column(6,
                       plotOutput("nuagePointsTempsChargement"),
                       textOutput("correlationTempsChargement")
-                      )
+               )
              ),
              fluidRow(
-                      column(12, 
-                             plotOutput("barplotDodgeBiGenreSession"))
+               column(12, 
+                      plotOutput("barplotDodgeBiGenreSession"))
                
              ),
              fluidRow(
@@ -146,14 +150,15 @@ ui <- fluidPage(
                       plotOutput("barplotDodgeBiDeviceChargement"))
              )
              
+    )
+             
+             
              )
+    
     
     
   )
   
- 
-  
-)
 
 server <- function(input,output){
   
@@ -275,14 +280,52 @@ de comportement utilisateur peuvent influencer le Système d’information d’u
   
   output$diagSexe <- renderPlot({
     pie(c(length(which((data()[,2])== "Femme")),length(which((data()[,2])== "Homme"))), col=c("#AAFFAA","#FFEE44"), labels=c("Femme","Homme"), main="Comparaison sexe",cex=1.5)
-  })
+    total = sum(c(length(which((data()[,2])== "Femme")),length(which((data()[,2])== "Homme"))))
+    pourcentages = c(length(which((data()[,2])== "Femme")),length(which((data()[,2])== "Homme")))/total*100 ; cat("Les valeurs en % sont de :",pourcentages,"\n")
+    # Fonction à coller dans R - cette fonction text_pie permet d'ajouter des étiquettes au centre des quartiers
+    text_pie = function(vector,labels=c(),cex=1) {
+      vector = vector/sum(vector)*2*pi
+      temp = c()
+      j = 0
+      l = 0
+      for (i in 1:length(vector)) {
+        k = vector[i]/2        
+        j =  j+l+k
+        l = k
+        text(cos(j)/2,sin(j)/2,labels[i],cex=cex)
+      }
+      vector = temp
+    }
+    # Ajouter les étiquettes
+    text_pie(pourcentages,c("67,9%","32,1%"),cex=1.1) # Ces valeurs en % sont à remplacer manuellement
+    })
   output$texteDiagSexe <- renderText(
     "Nous pouvons voir grâce à ce diagramme que nous avons une majorité de femme qui viennent sur le site par rapport aux hommes. Cela nous permettra de prendre des décisions stratégiques comme par exemple, continuer à attirer un public féminin ou bien au contraire, faire des changements sur le site pour attirer plus d'hommes."
   )
   
   output$diagDevices <- renderPlot({
     pie(c(length(which((data()[,3])== "Desktop")),length(which((data()[,3])== "Mobile")),length(which((data()[,3])== "Tablette"))), col=c("#AAFFAA","#FFEE44","#DDDDDD"), labels=c("Desktop","Mobile","Tablette"), main="Comparaison sexe",cex=1.5)
-  })
+    total = sum(c(length(which((data()[,3])== "Desktop")),length(which((data()[,3])== "Mobile")),length(which((data()[,3])== "Tablette"))))
+    pourcentages = c(length(which((data()[,3])== "Desktop")),length(which((data()[,3])== "Mobile")),length(which((data()[,3])== "Tablette")))/total*100 ; cat("Les valeurs en % sont de :",pourcentages,"\n")
+    # Fonction à coller dans R - cette fonction text_pie permet d'ajouter des étiquettes au centre des quartiers
+    text_pie = function(vector,labels=c(),cex=1) {
+      vector = vector/sum(vector)*2*pi
+      temp = c()
+      j = 0
+      l = 0
+      for (i in 1:length(vector)) {
+        k = vector[i]/2        
+        j =  j+l+k
+        l = k
+        text(cos(j)/2,sin(j)/2,labels[i],cex=cex)
+      }
+      vector = temp
+    }
+    # Ajouter les étiquettes
+    text_pie(pourcentages,c("18,7%","67,8%","13,5%"),cex=1.1) # Ces valeurs en % sont à remplacer manuellement
+    
+    
+    })
   output$texteDiagDevices <- renderText(
     "Nous pouvons voir grâce à ce schéma que plus de la moitié des devices sont des téléphones mobiles, suivit des PC et enfin les tablettes. Nous savons donc qu'il faut qu'on axe nos stratégies d'évolution sur le site en fonction les smartphones."
   )
@@ -392,6 +435,37 @@ de comportement utilisateur peuvent influencer le Système d’information d’u
   output$texteAnalyseTempsPage <- renderText(
     "e"
   )
+  
+  #Performance
+  #Général
+  
+  
+  output$diagPerf <- renderPlot({
+    pie(c(mean(data()[,9])-mean(data()[,6]),mean(data()[,6])),col=c("#AAAAAA","#EEEEEE"), labels=c("Temps de chargement","Temps effectif"), main="Comparaison du temps de chargement et du temps effectif sur le site",cex = 1.5)
+    # Calculer pourcentages correspondant à chaque valeurs
+    total = sum(c(mean(data()[,9])-mean(data()[,6]),mean(data()[,6])))
+    pourcentages = c(mean(data()[,9])-mean(data()[,6]),mean(data()[,6]))/total*100 ; cat("Les valeurs en % sont de :",pourcentages,"\n")
+    # Fonction à coller dans R - cette fonction text_pie permet d'ajouter des étiquettes au centre des quartiers
+    text_pie = function(vector,labels=c(),cex=1) {
+      vector = vector/sum(vector)*2*pi
+      temp = c()
+      j = 0
+      l = 0
+      for (i in 1:length(vector)) {
+        k = vector[i]/2        
+        j =  j+l+k
+        l = k
+        text(cos(j)/2,sin(j)/2,labels[i],cex=cex)
+      }
+      vector = temp
+    }
+    # Ajouter les étiquettes
+    text_pie(pourcentages,c("21,07%","78,93%"),cex=1.1) # Ces valeurs en % sont à remplacer manuellement
+    
+    
+    
+    })
+  
   
   
   #Analyse Bivariées
